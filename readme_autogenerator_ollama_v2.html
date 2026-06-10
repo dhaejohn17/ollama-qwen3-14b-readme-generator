@@ -1,0 +1,276 @@
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --tm-bg:#0d1117;--tm-surface:#161b22;--tm-border:#30363d;
+      --tm-green:#39d353;--tm-amber:#f0b429;--tm-blue:#58a6ff;
+      --tm-text:#e6edf3;--tm-muted:#8b949e;--tm-red:#f85149;
+      --tm-cursor:#39d353;
+    }
+    .term-root{font-family:'JetBrains Mono',monospace;background:var(--tm-bg);color:var(--tm-text);min-height:580px;border-radius:8px;border:1px solid var(--tm-border);overflow:hidden;display:flex;flex-direction:column;}
+    .titlebar{background:var(--tm-surface);border-bottom:1px solid var(--tm-border);padding:10px 16px;display:flex;align-items:center;gap:8px;}
+    .dot{width:12px;height:12px;border-radius:50%;}
+    .d-red{background:#ff5f57;}.d-yellow{background:#febc2e;}.d-green{background:#28c840;}
+    .titlebar-label{font-size:12px;color:var(--tm-muted);margin-left:auto;margin-right:auto;}
+    .body{display:flex;flex:1;min-height:0;}
+    .panel-left{width:340px;border-right:1px solid var(--tm-border);display:flex;flex-direction:column;overflow-y:auto;}
+    .panel-right{flex:1;display:flex;flex-direction:column;min-width:0;}
+    .sec-head{font-size:11px;color:var(--tm-green);padding:10px 14px 6px;letter-spacing:.08em;border-bottom:1px solid var(--tm-border);}
+    .upload-zone{margin:12px;border:1px dashed var(--tm-border);border-radius:6px;padding:12px;cursor:pointer;transition:border-color .2s;}
+    .upload-zone:hover{border-color:var(--tm-green);}
+    .upload-zone p{font-size:11px;color:var(--tm-muted);text-align:center;line-height:1.6;}
+    .upload-zone p span{color:var(--tm-blue);}
+    .textarea-upload{width:100%;background:#0d1117;border:1px solid var(--tm-border);color:var(--tm-text);font-family:inherit;font-size:11px;padding:8px;border-radius:4px;resize:none;outline:none;margin-top:6px;}
+    .textarea-upload:focus{border-color:var(--tm-green);}
+    .fields{padding:8px 12px;display:flex;flex-direction:column;gap:8px;}
+    .field-row{display:flex;flex-direction:column;gap:3px;}
+    .field-label{font-size:10px;color:var(--tm-green);letter-spacing:.06em;}
+    .field-input{background:var(--tm-bg);border:1px solid var(--tm-border);color:var(--tm-text);font-family:inherit;font-size:12px;padding:6px 8px;border-radius:4px;outline:none;width:100%;}
+    .field-input:focus{border-color:var(--tm-green);}
+    .field-input::placeholder{color:var(--tm-muted);}
+    textarea.field-input{resize:none;}
+    .gen-btn{margin:10px 12px;background:transparent;border:1px solid var(--tm-green);color:var(--tm-green);font-family:inherit;font-size:13px;padding:9px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:background .15s;}
+    .gen-btn:hover{background:rgba(57,211,83,.1);}
+    .gen-btn:disabled{opacity:.4;cursor:not-allowed;}
+    .out-head{font-size:11px;color:var(--tm-muted);padding:10px 14px 6px;border-bottom:1px solid var(--tm-border);display:flex;align-items:center;justify-content:space-between;}
+    .out-head-left{color:var(--tm-green);letter-spacing:.08em;font-size:11px;}
+    .copy-btn{background:transparent;border:1px solid var(--tm-border);color:var(--tm-muted);font-family:inherit;font-size:10px;padding:3px 8px;border-radius:3px;cursor:pointer;transition:color .15s,border-color .15s;}
+    .copy-btn:hover{color:var(--tm-text);border-color:var(--tm-text);}
+    .out-body{flex:1;overflow-y:auto;padding:14px;font-size:12px;line-height:1.7;color:var(--tm-text);white-space:pre-wrap;word-break:break-word;}
+    .cursor-blink{display:inline-block;width:8px;height:14px;background:var(--tm-cursor);animation:blink 1s step-start infinite;vertical-align:text-bottom;}
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+    .status-bar{background:var(--tm-surface);border-top:1px solid var(--tm-border);padding:5px 14px;font-size:10px;color:var(--tm-muted);display:flex;justify-content:space-between;}
+    .status-ok{color:var(--tm-green);}
+    .status-err{color:var(--tm-red);}
+    .file-badge{background:rgba(57,211,83,.12);border:1px solid var(--tm-green);color:var(--tm-green);font-size:10px;padding:2px 7px;border-radius:3px;margin-top:6px;display:inline-block;}
+  </style>
+  
+  <div class="term-root" role="main">
+    <div class="titlebar">
+      <div class="dot d-red"></div><div class="dot d-yellow"></div><div class="dot d-green"></div>
+      <span class="titlebar-label">readme-gen — qwen3:14b via ollama</span>
+    </div>
+  
+    <div class="body">
+      <div class="panel-left">
+        <div class="sec-head">// INPUT</div>
+  
+        <div class="upload-zone" id="uploadZone">
+          <p>drop <span>package.json</span> / <span>requirements.txt</span> / code<br>or paste below</p>
+          <textarea class="textarea-upload" id="pasteInput" rows="3" placeholder="# paste code or config here..."></textarea>
+          <div id="fileBadge" style="display:none;"></div>
+          <input type="file" id="fileInput" style="display:none;" accept=".json,.txt,.py,.js,.ts,.md">
+        </div>
+  
+        <div class="fields">
+          <div class="field-row">
+            <span class="field-label">PROJECT_NAME</span>
+            <input class="field-input" id="fName" type="text" placeholder="my-awesome-project">
+          </div>
+          <div class="field-row">
+            <span class="field-label">TAGLINE</span>
+            <input class="field-input" id="fTag" type="text" placeholder="one line that sells it">
+          </div>
+          <div class="field-row">
+            <span class="field-label">DESCRIPTION</span>
+            <textarea class="field-input" id="fDesc" rows="3" placeholder="what it does, who it's for..."></textarea>
+          </div>
+          <div class="field-row">
+            <span class="field-label">TECH_STACK</span>
+            <input class="field-input" id="fStack" type="text" placeholder="React, Node.js, PostgreSQL">
+          </div>
+          <div class="field-row">
+            <span class="field-label">KEY_FEATURES</span>
+            <textarea class="field-input" id="fFeatures" rows="2" placeholder="auth, dark mode, REST API..."></textarea>
+          </div>
+          <div class="field-row">
+            <span class="field-label">INSTALL_STEPS</span>
+            <textarea class="field-input" id="fInstall" rows="2" placeholder="npm install, then npm run dev"></textarea>
+          </div>
+          <div class="field-row">
+            <span class="field-label">LICENSE</span>
+            <input class="field-input" id="fLicense" type="text" placeholder="MIT">
+          </div>
+        </div>
+  
+        <button class="gen-btn" id="genBtn">▶ generate readme</button>
+      </div>
+  
+      <div class="panel-right">
+        <div class="out-head">
+          <span class="out-head-left">// OUTPUT — README.md</span>
+          <button class="copy-btn" id="copyBtn">copy</button>
+        </div>
+        <div class="out-body" id="outBody"><span style="color:var(--tm-green)">user@readme-gen:~$ </span><span style="color:var(--tm-amber)">./gen --init</span>
+  <span style="color:var(--tm-muted)"># fill in the fields and hit generate
+  # make sure ollama is running: ollama serve
+  # and OLLAMA_ORIGINS=* is set</span>
+  
+  <span class="cursor-blink"></span></div>
+      </div>
+    </div>
+  
+    <div class="status-bar">
+      <span id="statusLeft" class="status-ok">idle · ollama @ localhost:11434</span>
+      <span>model: qwen3:14b · readme-gen v1.0</span>
+    </div>
+  </div>
+  
+  <script>
+  // Updated Model Constant
+  const MODEL = 'qwen3:14b';
+  const OLLAMA_URL = 'http://localhost:11434/api/chat';
+  
+  const genBtn = document.getElementById('genBtn');
+  const outBody = document.getElementById('outBody');
+  const copyBtn = document.getElementById('copyBtn');
+  const pasteInput = document.getElementById('pasteInput');
+  const fileInput = document.getElementById('fileInput');
+  const uploadZone = document.getElementById('uploadZone');
+  const fileBadge = document.getElementById('fileBadge');
+  const statusLeft = document.getElementById('statusLeft');
+  
+  let generatedMd = '';
+  
+  uploadZone.addEventListener('click', e => {
+    if(e.target !== pasteInput) fileInput.click();
+  });
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.style.borderColor = 'var(--tm-green)'; });
+  uploadZone.addEventListener('dragleave', () => { uploadZone.style.borderColor = 'var(--tm-border)'; });
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.style.borderColor = 'var(--tm-border)';
+    const f = e.dataTransfer.files[0];
+    if(f) readFile(f);
+  });
+  fileInput.addEventListener('change', () => { if(fileInput.files[0]) readFile(fileInput.files[0]); });
+  
+  function readFile(f) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      pasteInput.value = ev.target.result.slice(0, 3000);
+      fileBadge.style.display = 'block';
+      fileBadge.innerHTML = '<span class="file-badge">✓ ' + f.name + '</span>';
+      setStatus('file loaded: ' + f.name, false);
+    };
+    reader.readAsText(f);
+  }
+  
+  function setStatus(msg, isErr) {
+    statusLeft.textContent = msg;
+    statusLeft.className = isErr ? 'status-err' : 'status-ok';
+  }
+  
+  function buildPrompt() {
+    const name    = document.getElementById('fName').value.trim();
+    const tag     = document.getElementById('fTag').value.trim();
+    const desc    = document.getElementById('fDesc').value.trim();
+    const stack   = document.getElementById('fStack').value.trim();
+    const features= document.getElementById('fFeatures').value.trim();
+    const install = document.getElementById('fInstall').value.trim();
+    const license = document.getElementById('fLicense').value.trim() || 'MIT';
+    const paste   = pasteInput.value.trim();
+  
+    let prompt = `Generate a professional, well-structured README.md for a software project. Output ONLY the raw markdown — no explanation, no preamble, no code fences around the whole thing.\n\n`;
+  
+    if(paste) prompt += `DETECTED FROM FILE/CODE:\n${paste.slice(0,1500)}\n\nUse the above to infer missing details (tech stack, dependencies, project purpose) if not provided below.\n\n`;
+  
+    prompt += `PROJECT DETAILS:\n`;
+    if(name)     prompt += `Name: ${name}\n`;
+    if(tag)      prompt += `Tagline: ${tag}\n`;
+    if(desc)     prompt += `Description: ${desc}\n`;
+    if(stack)    prompt += `Tech stack: ${stack}\n`;
+    if(features) prompt += `Key features: ${features}\n`;
+    if(install)  prompt += `Installation: ${install}\n`;
+    prompt += `License: ${license}\n`;
+  
+    prompt += `\nStructure with: title + badges, description, features, tech stack, getting started (install + usage), license. Make it clean, professional, and developer-friendly.`;
+  
+    return prompt;
+  }
+  
+  genBtn.addEventListener('click', async () => {
+    const prompt = buildPrompt();
+    genBtn.disabled = true;
+    generatedMd = '';
+    setStatus('connecting to ollama...', false);
+  
+    outBody.innerHTML = '<span style="color:var(--tm-green)">user@readme-gen:~$ </span><span style="color:var(--tm-amber)">./gen --run --model ' + MODEL + '</span>\n';
+  
+    const pre = document.createElement('pre');
+    pre.style.cssText = 'white-space:pre-wrap;word-break:break-word;font-family:inherit;font-size:12px;color:var(--tm-text);margin-top:8px;';
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor-blink';
+    outBody.appendChild(pre);
+    outBody.appendChild(cursor);
+  
+    try {
+      const response = await fetch(OLLAMA_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: MODEL,
+          stream: true,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+  
+      if(!response.ok) throw new Error('ollama returned ' + response.status);
+  
+      setStatus('generating...', false);
+  
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+  
+      while(true) {
+        const { done, value } = await reader.read();
+        if(done) break;
+  
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+  
+        for(const line of lines) {
+          if(!line.trim()) continue;
+          try {
+            const parsed = JSON.parse(line);
+            const token = parsed?.message?.content;
+            if(token) {
+              generatedMd += token;
+              pre.textContent = generatedMd;
+              outBody.scrollTop = outBody.scrollHeight;
+            }
+          } catch(e) {}
+        }
+      }
+  
+      cursor.remove();
+      const done = document.createElement('span');
+      done.style.color = 'var(--tm-green)';
+      done.style.fontSize = '11px';
+      done.textContent = '\n\n✓ done — ' + generatedMd.length + ' chars';
+      outBody.appendChild(done);
+      setStatus('✓ readme generated · ' + generatedMd.length + ' chars', false);
+  
+    } catch(err) {
+      cursor.remove();
+      const errSpan = document.createElement('span');
+      errSpan.style.color = 'var(--tm-red)';
+      errSpan.style.fontSize = '12px';
+      errSpan.textContent = '\n✗ error: ' + err.message + '\n\nmake sure ollama is running and OLLAMA_ORIGINS=* is set.';
+      outBody.appendChild(errSpan);
+      setStatus('✗ ' + err.message, true);
+    } finally {
+      genBtn.disabled = false;
+    }
+  });
+  
+  copyBtn.addEventListener('click', () => {
+    if(!generatedMd) return;
+    navigator.clipboard.writeText(generatedMd).then(() => {
+      copyBtn.textContent = '✓ copied';
+      setTimeout(() => copyBtn.textContent = 'copy', 1500);
+    });
+  });
+  </script>
