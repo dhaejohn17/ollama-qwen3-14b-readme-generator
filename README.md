@@ -6,7 +6,7 @@
 ---
 
 ### Description  
-A local, dark-themed terminal UI utility to automatically generate README.md files using **Ollama** and **Qwen3**. Simply provide your JSON, TXT, or code, and let the AI handle the rest.  
+A local, dark-themed terminal UI utility to automatically generate README.md files using **Ollama** and **Qwen3**. Simply provide your JSON, TXT, or code, and let the AI handle the rest. >.<  
 
 ---
 
